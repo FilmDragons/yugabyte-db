@@ -178,6 +178,7 @@ TableInfo::TableInfo(const std::string& log_prefix_,
 TableInfo::TableInfo(const std::string& tablet_log_prefix,
                      Primary primary,
                      std::string table_id_,
+                     NamespaceID ns_id,
                      std::string namespace_name,
                      std::string table_name,
                      TableType table_type,
@@ -191,6 +192,7 @@ TableInfo::TableInfo(const std::string& tablet_log_prefix,
                      TableId pg_table_id_,
                      SkipTableTombstoneCheck skip_table_tombstone_check_)
     : table_id(std::move(table_id_)),
+      ns_id(std::move(ns_id)),
       namespace_name(std::move(namespace_name)),
       table_name(std::move(table_name)),
       table_type(table_type),
@@ -493,8 +495,8 @@ TableInfoPtr TableInfo::TEST_CreateWithLogPrefix(
     const Schema& schema,
     dockv::PartitionSchema partition_schema) {
   return std::make_shared<TableInfo>(
-      std::move(log_prefix), Primary::kTrue, std::move(table_id), std::move(namespace_name),
-      std::move(table_name), table_type, schema, qlexpr::IndexMap(),
+      std::move(log_prefix), Primary::kTrue, std::move(table_id), std::move(ns_id),
+      std::move(namespace_name), std::move(table_name), table_type, schema, qlexpr::IndexMap(),
       std::nullopt /* index_info */, 0 /* schema_version */, partition_schema, OpId{}, HybridTime{},
       "" /* pg_table_id */, tablet::SkipTableTombstoneCheck::kFalse);
 }
@@ -1482,11 +1484,12 @@ void RaftGroupMetadata::SetSchemaAndTableName(
 }
 
 Result<TableInfoPtr> RaftGroupMetadata::AddTable(
-    const std::string& table_id, const std::string& namespace_name, const std::string& table_name,
-    const TableType table_type, const Schema& schema, const IndexMap& index_map,
-    const dockv::PartitionSchema& partition_schema, const std::optional<IndexInfo>& index_info,
-    const SchemaVersion schema_version, const OpId& op_id, HybridTime ht,
-    const TableId& pg_table_id, const SkipTableTombstoneCheck skip_table_tombstone_check,
+    const std::string& table_id, const NamespaceId& namespace_id, const std::string& namespace_name,
+    const std::string& table_name, const TableType table_type, const Schema& schema,
+    const IndexMap& index_map, const dockv::PartitionSchema& partition_schema,
+    const std::optional<IndexInfo>& index_info, const SchemaVersion schema_version,
+    const OpId& op_id, HybridTime ht, const TableId& pg_table_id,
+    const SkipTableTombstoneCheck skip_table_tombstone_check,
     const google::protobuf::RepeatedPtrField<dockv::SchemaPackingPB>& old_schema_packings) {
   DCHECK(schema.has_column_ids());
   std::lock_guard lock(data_mutex_);
@@ -1494,6 +1497,7 @@ Result<TableInfoPtr> RaftGroupMetadata::AddTable(
   TableInfoPtr new_table_info = std::make_shared<TableInfo>(log_prefix_,
                                                             primary,
                                                             table_id,
+                                                            ns_id,
                                                             namespace_name,
                                                             table_name,
                                                             table_type,
