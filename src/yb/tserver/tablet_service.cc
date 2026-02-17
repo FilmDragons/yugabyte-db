@@ -1746,7 +1746,7 @@ Status TabletServiceAdminImpl::DoCreateTablet(const CreateTabletRequestPB* req,
   // constructor.
   auto table_info = std::make_shared<tablet::TableInfo>(
       consensus::MakeTabletLogPrefix(req->tablet_id(), server_->permanent_uuid()),
-      tablet::Primary::kTrue, req->table_id(), req->namespace_name(), req->table_name(),
+      tablet::Primary::kTrue, req->table_id(), req->namespace_id, req->namespace_name(), req->table_name(),
       req->table_type(), schema, qlexpr::IndexMap(),
       req->has_index_info() ? std::optional<qlexpr::IndexInfo>(req->index_info()) : std::nullopt,
       0 /* schema_version */, partition_schema, OpId{}, HybridTime{}, req->pg_table_id(),
